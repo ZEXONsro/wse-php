@@ -59,10 +59,17 @@ class WSSESoap
     const WSSEPFX = 'wsse';
     const WSUPFX = 'wsu';
     protected $soapNS, $soapPFX;
+    /**
+     * @var \DOMDocument $soapDoc
+     */
     protected $soapDoc = null;
     protected $envelope = null;
     protected $SOAPXPath = null;
     protected $secNode = null;
+    /**
+     * @var \RobRichards\WsePhp\WSSEExternalXmlSignerInterface $externalSigner
+     */
+    protected $externalSigner = null;
     public $signAllHeaders = false;
     public $signBody = true;
 
@@ -114,6 +121,11 @@ class WSSESoap
         $this->SOAPXPath->registerNamespace('wssoap', $this->soapNS);
         $this->SOAPXPath->registerNamespace('wswsse', self::WSSENS);
         $this->locateSecurityHeader($bMustUnderstand, $setActor);
+    }
+
+    public function registerExternalSigner(WSSEExternalXmlSignerInterface $externalSigner)
+    {
+        $this->externalSigner = $externalSigner;
     }
 
     public function addTimestamp($secondsToExpire = 3600)
@@ -289,6 +301,44 @@ class WSSESoap
                     $reference->appendChild($dataNode);
                 }
             }
+        }
+    }
+
+    /**
+     * Function will sign XML document node with external signer which should be registered before
+     * @param array $nodesNamesToSign Names of XML document nodes that should be signed
+     * @param array $signerOptions
+     * @throws \Exception
+     */
+    public function signSoapPartExt($nodesNamesToSign, $signerOptions = [])
+    {
+        if (!$this->externalSigner or !($this->externalSigner instanceof WSSEExternalXmlSignerInterface)) {
+            throw new \Exception("External signer should be registered before calling this function.");
+        }
+
+        foreach ($nodesNamesToSign as $nodeName) {
+            $nodesToSign = $this->soapDoc->getElementsByTagName($nodeName);
+
+            // only one entity could be signed
+            if (count($nodesToSign) > 0) {
+                $nodeToSign = $nodesToSign[0];
+                $nodePatternName = $nodeToSign->nodeName;
+                $xmlLine = $this->soapDoc->saveXML($nodeToSign);
+                $signerResponse = $this->externalSigner->signXml($xmlLine, $signerOptions);
+                if ($signerResponse->isSignatureFailed()) {
+                    throw new \Exception("External sign failed: " .
+                        $signerResponse->getSignerExceptionCode() .
+                        " " .
+                        $signerResponse->getSignerExceptionMessage() );
+                }
+                $tmpDoc = $this->soapDoc->saveXML();
+                $tmpDoc = preg_replace('/<'.$nodePatternName.'>.*<\/'.$nodePatternName.'>/sm',$signerResponse->getSignedXml(),$tmpDoc);
+                $this->soapDoc->loadXML($tmpDoc);
+
+                // for the moment we will sign only first matched node
+                break;
+            }
+
         }
     }
 
