@@ -10,6 +10,6 @@ interface WSSEExternalXmlSignerInterface
      * @param array|null $options Possible options for external singer
      * @return \RobRichards\WsePhp\WSSEExternalXmlSignerResponseInterface
      */
-    public function signXml($xml): WSSEExternalXmlSignerResponseInterface;
+    public function signXml(string $xml, ?array $options = []): WSSEExternalXmlSignerResponseInterface;
 
 }
