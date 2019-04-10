@@ -342,9 +342,6 @@ class WSSESoap
                 $unsignedXml = $this->soapDoc->saveXML();
                 $signedXml = preg_replace('/<\s*'.$nodePatternName.'\s*>.*<\s*\/\s*'.$nodePatternName.'\s*>/sm',$signedXmlString,$unsignedXml);
                 $this->soapDoc->loadXML($signedXml);
-                /*$signedXmlFrag = $this->soapDoc->createDocumentFragment();
-                $signedXmlFrag->appendXML($signedXmlString);
-                $this->soapDoc->replaceChild($signedXmlFrag, $nodeToSign);*/
                 // for the moment we will sign only first matched node
                 break;
             }
