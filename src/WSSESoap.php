@@ -314,7 +314,7 @@ class WSSESoap
     {
 
         if (!$this->externalSigner or !($this->externalSigner instanceof WSSEExternalXmlSignerInterface)) {
-            throw new \Exception("External signer should be registered before calling this function.");
+            throw new SoapNodeSignFailedException("External signer should be registered before calling this function.");
         }
 
         foreach ($nodesNamesToSign as $nodeName) {
@@ -322,28 +322,42 @@ class WSSESoap
 
             // only one entity could be signed
             if (count($nodesToSign) > 0) {
-                $nodeToSign = $nodesToSign[0]->cloneNode(true);
-                $sxel = new \SimpleXMLElement($this->soapDoc->saveHTML($this->envelope));
-                $nsList = $sxel->getNamespaces(true);
-                foreach ($nsList as $prefix => $nsUri) {
-                    $nodeToSign->setAttributeNS('http://www.w3.org/2000/xmlns/','xmlns:'.$prefix, $nsUri);
+                try {
+                    $nodeToSign = $nodesToSign[0]->cloneNode(true);
+                    $sxel = new \SimpleXMLElement($this->soapDoc->saveHTML($this->envelope));
+                    $nsList = $sxel->getNamespaces(true);
+                    foreach ($nsList as $prefix => $nsUri) {
+                        $nodeToSign->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:' . $prefix, $nsUri);
+                    }
+                    // meno xml node s ns prefixom!!
+                    $nodePatternName = $nodeToSign->nodeName;
+                    $xmlLine = $this->soapDoc->saveXML($nodeToSign);
+                    $signerResponse = $this->externalSigner->signXml($xmlLine, $signerOptions);
+                    if (!$signerResponse || empty($signerResponse->getSignedXml() ?? null)) {
+                        throw new SoapNodeSignFailedException("External sign failed: empty response!");
+                    }
+                    if ($signerResponse->isSignatureFailed()) {
+                        throw new SoapNodeSignFailedException("External sign failed: " .
+                            $signerResponse->getSignerExceptionCode() .
+                            " " .
+                            $signerResponse->getSignerExceptionMessage());
+                    }
+                    $signedXmlString = preg_replace('/\s*<\s*\?.*\?\s*>\s*/sm', '', $signerResponse->getSignedXml());
+                    if (empty($signedXmlString)) {
+                        throw new SoapNodeSignFailedException("External sign failed: error while XML header stripping!");
+                    }
+                    $unsignedXml = $this->soapDoc->saveXML();
+                    $signedXml = preg_replace('/<\s*' . $nodePatternName . '\s*>.*<\s*\/\s*' . $nodePatternName . '\s*>/sm',
+                        $signedXmlString, $unsignedXml);
+                    if (empty($signedXml)) {
+                        throw new SoapNodeSignFailedException("External sign failed: error while XML node replace wich signed response!");
+                    }
+                    $this->soapDoc->loadXML($signedXml);
+                    // for the moment we will sign only first matched node
+                    break;
+                } catch (\Exception $exception) {
+                    throw new SoapNodeSignFailedException($exception->getMessage());
                 }
-                // meno xml node s ns prefixom!!
-                $nodePatternName = $nodeToSign->nodeName;
-                $xmlLine = $this->soapDoc->saveXML($nodeToSign);
-                $signerResponse = $this->externalSigner->signXml($xmlLine, $signerOptions);
-                if ($signerResponse->isSignatureFailed()) {
-                    throw new \Exception("External sign failed: " .
-                        $signerResponse->getSignerExceptionCode() .
-                        " " .
-                        $signerResponse->getSignerExceptionMessage() );
-                }
-                $signedXmlString = preg_replace('/\s*<\s*\?.*\?\s*>\s*/sm','',$signerResponse->getSignedXml());
-                $unsignedXml = $this->soapDoc->saveXML();
-                $signedXml = preg_replace('/<\s*'.$nodePatternName.'\s*>.*<\s*\/\s*'.$nodePatternName.'\s*>/sm',$signedXmlString,$unsignedXml);
-                $this->soapDoc->loadXML($signedXml);
-                // for the moment we will sign only first matched node
-                break;
             }
 
         }
