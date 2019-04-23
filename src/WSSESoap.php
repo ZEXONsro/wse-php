@@ -58,6 +58,9 @@ class WSSESoap
     const WSUNAME = 'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0';
     const WSSEPFX = 'wsse';
     const WSUPFX = 'wsu';
+
+    const WSSE_EXT_XML_SIGN_FAIL_EXCEPTION_CODE = 1993;
+
     protected $soapNS, $soapPFX;
     /**
      * @var \DOMDocument $soapDoc
@@ -356,7 +359,7 @@ class WSSESoap
                     // for the moment we will sign only first matched node
                     break;
                 } catch (\Exception $exception) {
-                    throw new SoapNodeSignFailedException($exception->getMessage());
+                    throw new SoapNodeSignFailedException($exception->getMessage(), self::WSSE_EXT_XML_SIGN_FAIL_EXCEPTION_CODE);
                 }
             }
 
