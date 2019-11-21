@@ -59,7 +59,15 @@ class WSSESoap
     const WSSEPFX = 'wsse';
     const WSUPFX = 'wsu';
 
+    /**
+     * Exception code for generic remote signer fail
+     */
     const WSSE_EXT_XML_SIGN_FAIL_EXCEPTION_CODE = 1993;
+
+    /**
+     * Exception code for refused sign by some remote signer policy
+     */
+    const WSSE_EXT_XML_SIGN_REFUSED_EXCEPTION_CODE = 1994;
 
     protected $soapNS, $soapPFX;
     /**
@@ -316,7 +324,7 @@ class WSSESoap
     public function signSoapPartExt($nodesNamesToSign, $signerOptions = [])
     {
 
-        if (!$this->externalSigner or !($this->externalSigner instanceof WSSEExternalXmlSignerInterface)) {
+        if (!$this->externalSigner || !($this->externalSigner instanceof WSSEExternalXmlSignerInterface)) {
             throw new SoapNodeSignFailedException("External signer should be registered before calling this function.");
         }
 
@@ -337,7 +345,10 @@ class WSSESoap
                     $xmlLine = $this->soapDoc->saveXML($nodeToSign);
                     $signerResponse = $this->externalSigner->signXml($xmlLine, $signerOptions);
                     if (!$signerResponse || empty($signerResponse->getSignedXml() ?? null)) {
-                        throw new SoapNodeSignFailedException("External sign failed: empty response!");
+                        throw new SoapNodeSignFailedException("External sign failed:" .
+                            $signerResponse->getSignerExceptionCode() .
+                            " " .
+                            $signerResponse->getSignerExceptionMessage());
                     }
                     if ($signerResponse->isSignatureFailed()) {
                         throw new SoapNodeSignFailedException("External sign failed: " .
@@ -358,6 +369,8 @@ class WSSESoap
                     $this->soapDoc->loadXML($signedXml);
                     // for the moment we will sign only first matched node
                     break;
+                } catch ( SoapNodeSignRefusedException $exception) {
+                    throw new SoapNodeSignFailedException($exception->getMessage(), self::WSSE_EXT_XML_SIGN_REFUSED_EXCEPTION_CODE);
                 } catch (\Exception $exception) {
                     throw new SoapNodeSignFailedException($exception->getMessage(), self::WSSE_EXT_XML_SIGN_FAIL_EXCEPTION_CODE);
                 }
