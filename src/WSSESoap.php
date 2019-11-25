@@ -319,10 +319,12 @@ class WSSESoap
      * Function will sign XML document node with external signer which should be registered before
      * @param array $nodesNamesToSign Names of XML document nodes that should be signed
      * @param array $signerOptions
+     * @return string|null
      * @throws \Exception
      */
     public function signSoapPartExt($nodesNamesToSign, $signerOptions = [])
     {
+        $signerId = null;
 
         if (!$this->externalSigner || !($this->externalSigner instanceof WSSEExternalXmlSignerInterface)) {
             throw new SoapNodeSignFailedException("External signer should be registered before calling this function.");
@@ -357,6 +359,7 @@ class WSSESoap
                             $signerResponse->getSignerExceptionMessage());
                     }
                     $signedXmlString = preg_replace('/\s*<\s*\?.*\?\s*>\s*/sm', '', $signerResponse->getSignedXml());
+                    $signerId = $signerResponse->getSignerId();
                     if (empty($signedXmlString)) {
                         throw new SoapNodeSignFailedException("External sign failed: error while XML header stripping!");
                     }
@@ -377,6 +380,8 @@ class WSSESoap
             }
 
         }
+
+        return $signerId;
     }
 
     public function addEncryptedKey($node, $key, $token, $options = null)
