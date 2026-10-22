@@ -10,7 +10,7 @@ define('CERT_FILE', './cert-amazon-cert.pem');
 class MySoap extends SoapClient
 {
 
-    public function __doRequest($request, $location, $saction, $version)
+    public function __doRequest(string $request, string $location, string $action, int $version, bool $oneWay = false): ?string
     {
         $doc = new DOMDocument('1.0');
         $doc->loadXML($request);
@@ -32,7 +32,7 @@ class MySoap extends SoapClient
         /* Add certificate (BinarySecurityToken) to the message and attach pointer to Signature */
         $token = $objWSSE->addBinaryToken(file_get_contents(CERT_FILE));
         $objWSSE->attachTokentoSig($token);
-        return parent::__doRequest($objWSSE->saveXML(), $location, $saction, $version);
+        return parent::__doRequest($objWSSE->saveXML(), $location, $action, $version, $oneWay);
     }
 }
 

@@ -21,7 +21,7 @@ class MySoap extends SoapClient
         $this->_digest = $digest;
     }
 
-    public function __doRequest($request, $location, $saction, $version, $one_way = 0)
+    public function __doRequest(string $request, string $location, string $action, int $version, bool $oneWay = false): ?string
     {
         $doc = new DOMDocument('1.0');
         $doc->loadXML($request);
@@ -48,7 +48,7 @@ class MySoap extends SoapClient
         $objWSSE->attachTokentoSig($token);
 
         $request = $objWSSE->saveXML();
-        return parent::__doRequest($request, $location, $saction, $version);
+        return parent::__doRequest($request, $location, $action, $version, $oneWay);
     }
 }
 

@@ -11,7 +11,7 @@ define('SERVICE_CERT', 'sitekey_pub.cer');
 class MySoap extends SoapClient
 {
 
-    public function __doRequest($request, $location, $saction, $version)
+    public function __doRequest(string $request, string $location, string $action, int $version, bool $oneWay = false): ?string
     {
         $doc = new DOMDocument('1.0');
         $doc->loadXML($request);
@@ -46,7 +46,10 @@ class MySoap extends SoapClient
         $options = array("KeyInfo" => array("X509SubjectKeyIdentifier" => true));
         $objWSSE->encryptSoapDoc($siteKey, $objKey, $options);
 
-        $retVal = parent::__doRequest($objWSSE->saveXML(), $location, $saction, $version);
+        $retVal = parent::__doRequest($objWSSE->saveXML(), $location, $action, $version, $oneWay);
+        if ($oneWay || $retVal === null) {
+            return null;
+        }
 
         $doc = new DOMDocument();
         $doc->loadXML($retVal);

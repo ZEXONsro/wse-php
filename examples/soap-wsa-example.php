@@ -11,13 +11,13 @@ define('CERT_FILE', 'cert-public_key.pem');
 class MySoap extends SoapClient
 {
 
-    function __doRequest($request, $location, $saction, $version)
+    public function __doRequest(string $request, string $location, string $action, int $version, bool $oneWay = false): ?string
     {
         $dom = new DOMDocument();
         $dom->loadXML($request);
 
         $objWSA = new WSASoap($dom);
-        $objWSA->addAction($saction);
+        $objWSA->addAction($action);
         $objWSA->addTo($location);
         $objWSA->addMessageID();
         $objWSA->addReplyTo();
@@ -44,7 +44,7 @@ class MySoap extends SoapClient
         $objWSSE->attachTokentoSig($token);
 
         $request = $objWSSE->saveXML();
-        return parent::__doRequest($request, $location, $saction, $version);
+        return parent::__doRequest($request, $location, $action, $version, $oneWay);
     }
 }
 

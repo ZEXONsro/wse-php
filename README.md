@@ -4,8 +4,14 @@ Currently provides support for employing WS-Security and WS-Addressing when usin
 
 The WS-Security library also requires the use of the xmlseclibs library which supports XML-DSIG and XMLENC. 
 
+## Requirements
+
+- PHP 8.2 or later in the PHP 8.x series
+- The `dom`, `openssl`, `simplexml`, and `soap` PHP extensions
+- Composer
+
 # Branches
 Only the master branch is actively maintained.
-* master: Contains namespace support requiring 5.3+.
+* master: Contains namespace support.
 
 Mailing List: https://groups.google.com/forum/#!forum/wse-php

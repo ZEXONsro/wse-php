@@ -417,7 +417,7 @@ class WSSESoap
         $encKey->setAttribute('Id', $key->guid);
         $encMethod = $encKey->firstChild;
         while ($encMethod && $encMethod->localName != 'EncryptionMethod') {
-            $encMethod = $encMethod->nextChild;
+            $encMethod = $encMethod->nextSibling;
         }
         if ($encMethod) {
             $encMethod = $encMethod->nextSibling;
